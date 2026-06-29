@@ -58,7 +58,7 @@ export class MoftCalculator {
         const bundle = await handler.getAuditBundle(ids);
         const audits = this.transformAudits(bundle);
 
-        const dates = audits.map(audit => audit.date);
+        const dates = _.uniq(audits.map(audit => audit.date));
         const [nndTargets, nndGroups, anySku, kpiTargets] = await Promise.all([
             handler.getNndTargets(dates),
             handler.getNndGroups(dates),
