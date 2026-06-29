@@ -1,0 +1,17 @@
+name: Notify parent repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger submodule update in eoe-2025
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.SUBMODULE_PAT }}" \
+            https://api.github.com/repos/quangthienit1994/eoe-2025/dispatches \
+            -d '{"event_type":"calc-core-updated"}'
