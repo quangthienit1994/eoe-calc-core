@@ -478,7 +478,7 @@ export abstract class AuditCalculatorBase {
             storeChannel: meta.channel,
             storeSegment: meta.segment,
             storeTier: meta.tier,
-            outletType: meta.account,
+            outletType: meta.account === "Compertior" ? "Competitor" : meta.account,
             leadbrand: meta.leadBrandName,
             geoPoint,
             salesFullname: client?.fullName,
