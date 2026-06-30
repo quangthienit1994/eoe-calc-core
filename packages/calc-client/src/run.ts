@@ -22,7 +22,7 @@ import { AuditApiHandler, MoftApiHandler } from "./ApiHandler";
 // LOẠI TÍNH TOÁN — cố định, do bên cung cấp đặt trước khi giao cho khách.
 // Đổi giá trị này thành "hvn" | "sp" | "moft" cho đúng dataset của khách.
 // (Tenant hệ thống là "EOE", đã hardcode sẵn ở backend — khách không chạm tới.)
-const PROJECT: "hvn" | "sp" | "moft" = "hvn";
+const PROJECT: "hvn" | "sp" | "moft" = process.env.API_URL ? process.env.API_URL.toLowerCase() : "hvn";
 // ───────────────────────────────────────────────────────────────────────────
 
 type Args = Record<string, string>;
