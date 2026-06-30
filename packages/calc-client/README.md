@@ -14,12 +14,48 @@ Tool này cho phép bạn **chạy logic tính toán audit trên máy local**, d
 
 ## Cài đặt
 
-Bạn nhận được thư mục `eoe/`. Mở terminal tại thư mục gốc `eoe/` và chạy:
+Bạn nhận được thư mục `eoe-calc/`. Mở terminal tại thư mục gốc và chạy:
 
 ```bash
 yarn install
+```
+
+Chỉ cần `yarn install` là đủ để chạy **dev mode** (xem ngay bên dưới) — không cần build.
+
+---
+
+## Cách 1 — Dev mode (khuyên dùng, KHÔNG cần build)
+
+Chạy thẳng TypeScript bằng `tsx`. Sửa logic trong `packages/calc-core/src` →
+chạy lại là thấy ngay, **không cần biên dịch**.
+
+```bash
+# tại thư mục gốc eoe-calc/
+yarn workspace @eoe/calc-client dev \
+  --project hvn \
+  --ids 101,102,103 \
+  --api http://<server-url> \
+  --token <jwt-token> \
+  --out result.json
+```
+
+Hoặc gọn hơn, dùng script `dev` ở gốc (tương đương lệnh trên):
+
+```bash
+yarn dev --project hvn --ids 101,102 --api http://<server-url> --token <jwt>
+```
+
+> Vòng lặp khi chỉnh logic: sửa file trong `packages/calc-core/src` → chạy lại
+> lệnh `dev` → đối chiếu `output.json`. Không có bước build nào.
+
+---
+
+## Cách 2 — Build rồi chạy (cho production / đóng gói)
+
+```bash
 yarn workspace @eoe/calc-core build
 yarn workspace @eoe/calc-client build
+node packages/calc-client/dist/run.js --project hvn --ids 101,102 --api <url> --token <jwt>
 ```
 
 Sau bước này, file thực thi nằm tại `packages/calc-client/dist/run.js`.
@@ -40,18 +76,9 @@ curl -X POST http://<server>/api/auth/login \
 
 ---
 
-## Chạy
+## Tham số dòng lệnh
 
-Chạy từ thư mục `packages/calc-client/`:
-
-```bash
-node dist/run.js \
-  --project hvn \
-  --ids 101,102,103 \
-  --api http://<server-url> \
-  --token <jwt-token> \
-  --out result.json
-```
+Áp dụng cho cả 2 cách chạy ở trên.
 
 ### Tham số
 
@@ -66,24 +93,26 @@ node dist/run.js \
 
 *Phải có một trong hai: `--ids` hoặc `--ids-file`.
 
-### Ví dụ
+### Ví dụ (dev mode)
 
 **Chạy với danh sách ID:**
 ```bash
-node dist/run.js --project hvn --ids 1001,1002 --api http://eoe.example.com --token eyJhbGci... --out hvn_result.json
+yarn dev --project hvn --ids 1001,1002 --api http://eoe.example.com --token eyJhbGci... --out hvn_result.json
 ```
 
 **Chạy với file ID** (file `ids.json` chứa `[1001, 1002, 1003]`):
 ```bash
-node dist/run.js --project moft --ids-file ids.json --api http://eoe.example.com --token eyJhbGci...
+yarn dev --project moft --ids-file ids.json --api http://eoe.example.com --token eyJhbGci...
 ```
 
 **Dùng biến môi trường thay vì tham số:**
 ```bash
 export API_URL=http://eoe.example.com
 export API_TOKEN=eyJhbGci...
-node dist/run.js --project sp --ids 2001,2002
+yarn dev --project sp --ids 2001,2002
 ```
+
+> Nếu đã build (Cách 2), thay `yarn dev` bằng `node packages/calc-client/dist/run.js`.
 
 ---
 
@@ -126,19 +155,15 @@ calc-core/src/
     └── AuditCalculatorBase.ts  ← logic chung HVN/SP (getNND, getFS, getPromotionAndActivation...)
 ```
 
-### Quy trình chỉnh sửa
+### Quy trình chỉnh sửa (dev mode — không cần build)
 
 1. Sửa file trong `packages/calc-core/src/`
-2. Rebuild:
+2. Chạy lại ngay (tsx đọc thẳng source):
    ```bash
-   yarn workspace @eoe/calc-core build
+   yarn dev --project hvn --ids <id> --api <url> --token <token>
    ```
-3. Chạy lại để kiểm tra kết quả:
-   ```bash
-   node packages/calc-client/dist/run.js --project hvn --ids <id> --api <url> --token <token>
-   ```
-4. So sánh `output.json` với kết quả mong muốn
-5. Lặp lại cho đến khi đúng
+3. So sánh `output.json` với kết quả mong muốn
+4. Lặp lại cho đến khi đúng — **không có bước biên dịch nào giữa các lần chạy**
 
 ---
 
