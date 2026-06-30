@@ -32,6 +32,11 @@ abstract class BaseApiHandler {
         const r = await this.http.post(`/api/calc/${this.project}/${path}`, body);
         return r.data;
     }
+
+    /** Danh sách audit ids của một tháng (khi client không truyền ids cụ thể). */
+    public async getAuditIds(year: number, month: number): Promise<number[]> {
+        return (await this.post('audit-ids', { year, month })).ids;
+    }
 }
 
 export class AuditApiHandler extends BaseApiHandler implements AuditDataHandler {

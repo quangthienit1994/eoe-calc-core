@@ -9,21 +9,22 @@ import { AuditApiHandler, MoftApiHandler } from "./ApiHandler";
  * Local runner: load data from the backend export API and run @eoe/calc-core
  * locally. Produces the same { changes, removes, creates } the backend computes.
  *
- * Cấu hình:
- *   - PROJECT: cố định trong source (xem bên dưới). Khách KHÔNG đổi được qua CLI.
- *   - URL + token: đọc từ file .env (API_URL, API_TOKEN). Xem .env.example.
+ * Cấu hình trong .env (xem .env.example):
+ *   - API_URL, API_TOKEN: server + token.
+ *   - PROJECT: hvn | sp | moft (loại tính toán).
+ *   - MONTH:   yyyy-MM (tùy chọn; để trống = tháng hiện tại).
  *
  * Chạy:
- *   yarn dev --ids 101,102
+ *   yarn dev                      # tất cả audit của tháng (theo .env)
+ *   yarn dev --ids 101,102        # chỉ các id chỉ định
  *   yarn dev --ids-file ids.json --out result.json
  */
 
-// ───────────────────────────────────────────────────────────────────────────
-// LOẠI TÍNH TOÁN — cố định, do bên cung cấp đặt trước khi giao cho khách.
-// Đổi giá trị này thành "hvn" | "sp" | "moft" cho đúng dataset của khách.
-// (Tenant hệ thống là "EOE", đã hardcode sẵn ở backend — khách không chạm tới.)
-const PROJECT: "hvn" | "sp" | "moft" = process.env.API_URL ? process.env.API_URL.toLowerCase() : "hvn";
-// ───────────────────────────────────────────────────────────────────────────
+const ALLOWED = ["hvn", "sp", "moft"] as const;
+type Project = typeof ALLOWED[number];
+
+// Loại tính toán đọc từ .env (PROJECT). Tenant hệ thống "EOE" đã hardcode ở backend.
+const PROJECT = (process.env.PROJECT || "hvn").trim().toLowerCase() as Project;
 
 type Args = Record<string, string>;
 
@@ -56,8 +57,28 @@ function resolveIds(args: Args): number[] {
     return [];
 }
 
+/** Tháng cần tính: từ MONTH=yyyy-MM trong .env; để trống = tháng hiện tại. */
+function resolveMonth(): { year: number; month: number } {
+    const raw = (process.env.MONTH || "").trim();
+    if (raw) {
+        const [y, m] = raw.split("-").map(s => parseInt(s, 10));
+        if (!y || !m || m < 1 || m > 12) {
+            console.error(`MONTH không hợp lệ trong .env: "${raw}" (định dạng yyyy-MM, ví dụ 2026-06)`);
+            process.exit(1);
+        }
+        return { year: y, month: m };
+    }
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2));
+
+    if (!ALLOWED.includes(PROJECT)) {
+        console.error(`PROJECT không hợp lệ trong .env: "${PROJECT}" (chỉ chấp nhận hvn | sp | moft)`);
+        process.exit(1);
+    }
 
     const baseURL = process.env.API_URL;
     if (!baseURL) {
@@ -67,12 +88,6 @@ async function main() {
 
     const token = process.env.API_TOKEN;
 
-    const ids = resolveIds(args);
-    if (!ids.length) {
-        console.error("Thiếu --ids <a,b,c> hoặc --ids-file <path.json>");
-        process.exit(1);
-    }
-
     const http = axios.create({
         baseURL,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -80,14 +95,25 @@ async function main() {
         maxBodyLength: Infinity,
     });
 
-    console.log(`Running ${PROJECT} for ${ids.length} audit(s) against ${baseURL} ...`);
+    // ids: ưu tiên --ids/--ids-file; nếu không có thì tự lấy tất cả audit của tháng.
+    let ids = resolveIds(args);
+    const { year, month } = resolveMonth();
+    const scope = ids.length ? `${ids.length} id chỉ định` : `tháng ${year}-${String(month).padStart(2, "0")}`;
+    console.log(`Running ${PROJECT} (${scope}) against ${baseURL} ...`);
 
     let result;
     if (PROJECT === "moft") {
-        result = await calculateMoft(ids, new MoftApiHandler(http, PROJECT));
+        const handler = new MoftApiHandler(http, PROJECT);
+        if (!ids.length) ids = await handler.getAuditIds(year, month);
+        result = await calculateMoft(ids, handler);
     } else {
         const handler = new AuditApiHandler(http, PROJECT);
+        if (!ids.length) ids = await handler.getAuditIds(year, month);
         result = PROJECT === "sp" ? await calculateSp(ids, handler) : await calculateHvn(ids, handler);
+    }
+
+    if (!ids.length) {
+        console.log("Không có audit nào trong phạm vi đã chọn.");
     }
 
     const out = args.out || "output.json";

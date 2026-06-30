@@ -36,10 +36,19 @@ Rồi mở `.env` điền giá trị do bên cung cấp đưa:
 ```
 API_URL=https://<server-url>
 API_TOKEN=<jwt-token>
+PROJECT=hvn          # loại tính toán: hvn | sp | moft
+MONTH=               # yyyy-MM; để trống = tháng hiện tại
 ```
 
-> **Loại tính toán** (HVN / SP / Moft) đã được **cố định sẵn trong source** bởi
-> bên cung cấp — bạn không cần và không thể đổi qua dòng lệnh.
+| Biến | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `API_URL` | Có | URL server (không có dấu `/` ở cuối) |
+| `API_TOKEN` | Có | JWT token |
+| `PROJECT` | Có | Loại tính toán: `hvn` / `sp` / `moft` |
+| `MONTH` | Không | Tháng cần tính `yyyy-MM`. Trống = tháng hiện tại |
+
+> Khi chạy **không có `--ids`**, tool tự lấy **tất cả audit của tháng** (`MONTH`,
+> mặc định tháng hiện tại). Tenant hệ thống "EOE" đã cố định ở backend.
 
 ---
 
@@ -49,14 +58,14 @@ Chạy thẳng TypeScript bằng `tsx`. Sửa logic trong `packages/calc-core/sr
 chạy lại là thấy ngay, **không cần biên dịch**.
 
 ```bash
-# tại thư mục gốc eoe-calc/
-yarn dev --ids 101,102,103 --out result.json
+# tại thư mục gốc eoe-calc/ — tự tính toàn bộ audit của tháng (theo .env)
+yarn dev
 ```
 
-Hoặc dạng đầy đủ (tương đương):
+Tùy chọn: chỉ tính một số audit cụ thể (bỏ qua việc lấy theo tháng):
 
 ```bash
-yarn workspace @eoe/calc-client dev --ids 101,102,103 --out result.json
+yarn dev --ids 101,102,103 --out result.json
 ```
 
 > Vòng lặp khi chỉnh logic: sửa file trong `packages/calc-core/src` → chạy lại
@@ -69,7 +78,7 @@ yarn workspace @eoe/calc-client dev --ids 101,102,103 --out result.json
 ```bash
 yarn workspace @eoe/calc-core build
 yarn workspace @eoe/calc-client build
-node packages/calc-client/dist/run.js --ids 101,102 --out result.json
+node packages/calc-client/dist/run.js          # hoặc thêm --ids 101,102 --out result.json
 ```
 
 Vẫn cần file `.env` như trên. File thực thi nằm tại `packages/calc-client/dist/run.js`.
@@ -92,25 +101,30 @@ curl -X POST http://<server>/api/auth/login \
 
 ## Tham số dòng lệnh
 
-Áp dụng cho cả 2 cách chạy ở trên. URL/token nằm trong `.env`, loại tính toán
-cố định trong source — nên dòng lệnh chỉ còn các tham số sau:
+URL/token/PROJECT/MONTH nằm trong `.env` — nên dòng lệnh **tùy chọn**:
 
 | Tham số | Bắt buộc | Mô tả |
 |---|---|---|
-| `--ids` | Có* | Danh sách audit ID, cách nhau bằng dấu phẩy |
-| `--ids-file` | Có* | Đường dẫn file JSON chứa danh sách ID |
+| `--ids` | Không | Danh sách audit ID cụ thể, cách nhau bằng dấu phẩy |
+| `--ids-file` | Không | Đường dẫn file JSON chứa danh sách ID |
 | `--out` | Không | File kết quả (mặc định: `output.json`) |
 
-*Phải có một trong hai: `--ids` hoặc `--ids-file`.
+> Không truyền `--ids`/`--ids-file` → tool tự lấy tất cả audit của tháng (`MONTH`
+> trong `.env`, mặc định tháng hiện tại).
 
 ### Ví dụ (dev mode)
 
-**Chạy với danh sách ID:**
+**Tất cả audit của tháng (theo `.env`):**
+```bash
+yarn dev
+```
+
+**Chỉ một số ID cụ thể:**
 ```bash
 yarn dev --ids 1001,1002 --out result.json
 ```
 
-**Chạy với file ID** (file `ids.json` chứa `[1001, 1002, 1003]`):
+**Từ file ID** (file `ids.json` chứa `[1001, 1002, 1003]`):
 ```bash
 yarn dev --ids-file ids.json
 ```
@@ -163,7 +177,7 @@ calc-core/src/
 1. Sửa file trong `packages/calc-core/src/`
 2. Chạy lại ngay (tsx đọc thẳng source):
    ```bash
-   yarn dev --ids <id>
+   yarn dev                 # hoặc yarn dev --ids <id> để thử nhanh 1 audit
    ```
 3. So sánh `output.json` với kết quả mong muốn
 4. Lặp lại cho đến khi đúng — **không có bước biên dịch nào giữa các lần chạy**
