@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "dotenv/config";
 import * as fs from "fs";
 import axios from "axios";
 import { calculateHvn, calculateSp, calculateMoft } from "@eoe/calc-core";
@@ -8,11 +9,21 @@ import { AuditApiHandler, MoftApiHandler } from "./ApiHandler";
  * Local runner: load data from the backend export API and run @eoe/calc-core
  * locally. Produces the same { changes, removes, creates } the backend computes.
  *
- *   node dist/run.js --project hvn --ids 101,102 --api http://localhost:3333 --token <jwt>
- *   node dist/run.js --project moft --ids-file ids.json --out result.json
+ * Cấu hình:
+ *   - PROJECT: cố định trong source (xem bên dưới). Khách KHÔNG đổi được qua CLI.
+ *   - URL + token: đọc từ file .env (API_URL, API_TOKEN). Xem .env.example.
  *
- * Env fallbacks: API_URL, API_TOKEN.
+ * Chạy:
+ *   yarn dev --ids 101,102
+ *   yarn dev --ids-file ids.json --out result.json
  */
+
+// ───────────────────────────────────────────────────────────────────────────
+// LOẠI TÍNH TOÁN — cố định, do bên cung cấp đặt trước khi giao cho khách.
+// Đổi giá trị này thành "hvn" | "sp" | "moft" cho đúng dataset của khách.
+// (Tenant hệ thống là "EOE", đã hardcode sẵn ở backend — khách không chạm tới.)
+const PROJECT: "hvn" | "sp" | "moft" = "hvn";
+// ───────────────────────────────────────────────────────────────────────────
 
 type Args = Record<string, string>;
 
@@ -48,22 +59,17 @@ function resolveIds(args: Args): number[] {
 async function main() {
     const args = parseArgs(process.argv.slice(2));
 
-    const project = args.project;
-    if (!["hvn", "sp", "moft"].includes(project)) {
-        console.error("Missing/invalid --project (hvn|sp|moft)");
-        process.exit(1);
-    }
-
-    const baseURL = args.api || process.env.API_URL;
+    const baseURL = process.env.API_URL;
     if (!baseURL) {
-        console.error("Missing --api <baseURL> (or env API_URL)");
+        console.error("Thiếu API_URL trong .env (tham khảo .env.example)");
         process.exit(1);
     }
 
-    const token = args.token || process.env.API_TOKEN;
+    const token = process.env.API_TOKEN;
+
     const ids = resolveIds(args);
     if (!ids.length) {
-        console.error("Missing --ids <a,b,c> or --ids-file <path.json>");
+        console.error("Thiếu --ids <a,b,c> hoặc --ids-file <path.json>");
         process.exit(1);
     }
 
@@ -74,14 +80,14 @@ async function main() {
         maxBodyLength: Infinity,
     });
 
-    console.log(`Running ${project} for ${ids.length} audit(s) against ${baseURL} ...`);
+    console.log(`Running ${PROJECT} for ${ids.length} audit(s) against ${baseURL} ...`);
 
     let result;
-    if (project === "moft") {
-        result = await calculateMoft(ids, new MoftApiHandler(http, project));
+    if (PROJECT === "moft") {
+        result = await calculateMoft(ids, new MoftApiHandler(http, PROJECT));
     } else {
-        const handler = new AuditApiHandler(http, project);
-        result = project === "sp" ? await calculateSp(ids, handler) : await calculateHvn(ids, handler);
+        const handler = new AuditApiHandler(http, PROJECT);
+        result = PROJECT === "sp" ? await calculateSp(ids, handler) : await calculateHvn(ids, handler);
     }
 
     const out = args.out || "output.json";

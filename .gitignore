@@ -2,3 +2,5 @@ node_modules/
 packages/*/dist/
 packages/*/node_modules/
 *.tsbuildinfo
+.env
+packages/*/.env
