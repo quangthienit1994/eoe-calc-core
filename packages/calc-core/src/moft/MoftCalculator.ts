@@ -2,6 +2,7 @@ import _ from "lodash";
 import { DateTime } from "luxon";
 import { Json, LoadResult, MoftAuditBundle, MoftDataHandler } from "../types";
 import { AnySku, KpiTarget, NndGroup, NndTarget } from "./lookups";
+import { isOk } from "../utils";
 
 const KPI_STATUS = [
     "nnd",
@@ -712,7 +713,7 @@ export class MoftCalculator {
     }
 
     private isOk(value: any) {
-        return value === "Có" || value === "Có";
+        return isOk(value);
     }
 
     private toNumber(value: any) {

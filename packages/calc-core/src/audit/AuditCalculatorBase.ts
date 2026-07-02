@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import _ from "lodash";
-import { combineArray } from "../utils";
+import { combineArray, isOk } from "../utils";
 import { formatPercent } from "../utils";
 import {
     AuditBundle,
@@ -210,7 +210,7 @@ export abstract class AuditCalculatorBase {
         const productGroups: number[] = [];
 
         Object.keys(nna).map(productCode => {
-            const status = nna[productCode][statusField] === "Có" || nna[productCode][statusField] === "Có trên menu";
+            const status = isOk(nna[productCode][statusField]) || nna[productCode][statusField] === "Có trên menu";
             mapProductStatus[productCode] = status;
             if (status) {
                 productCodes.push(productCode);

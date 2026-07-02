@@ -1,6 +1,6 @@
 import _ from "lodash";
 import dayjs from "dayjs";
-import { combineArray } from "../utils";
+import { combineArray, isOk } from "../utils";
 import { ProductDisplayConfig } from "../types";
 import { VisibilityCalculatorBase } from "../audit/VisibilityCalculatorBase";
 
@@ -179,7 +179,7 @@ export class HvnVisibilityCalculator extends VisibilityCalculatorBase {
                 return nnd[code]?.F1745393469953 === "Có trên menu";
             }) : false;
             const value = _.get(content, "F1744874687771.pricecheck01.F1745554205645");
-            const status = value === "Có" || findSkuOnMenu;
+            const status = isOk(value) || findSkuOnMenu;
             final[code] = {
                 name: "VISIBILITY - SKU LISTING ON MENU",
                 items: [

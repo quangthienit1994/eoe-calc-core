@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { combineArray } from "../utils";
+import { combineArray, isOk } from "../utils";
 import { Json, Option, ProductDisplayConfig } from "../types";
 
 export type VisibilityParams = {
@@ -158,7 +158,7 @@ export abstract class VisibilityCalculatorBase {
                             if (negativeFieldCodes.includes(fieldCode)) {
                                 status = value === "Không";
                             } else {
-                                status = Array.isArray(value) ? !value.includes("Không có") : (value?.trim() === "Có" || value === "Có");
+                                status = Array.isArray(value) ? !value.includes("Không có") : isOk(value?.trim());
                             }
                         }
                     }
@@ -487,7 +487,7 @@ export abstract class VisibilityCalculatorBase {
         if (Array.isArray(value)) {
             return value.length === 1 ? !value.includes("Không có") : true;
         } else {
-            return value === "Có" || (value !== "Không có" && value !== "Không");
+            return isOk(value) || (value !== "Không có" && value !== "Không");
         }
     }
 }

@@ -25,3 +25,7 @@ export function formatPercent(hvn: number, total: number, digit: number = 1): nu
 
   return finalValue;
 }
+
+export function isOk(value: string) {
+  return value === "Có" || value === "Có"
+}
