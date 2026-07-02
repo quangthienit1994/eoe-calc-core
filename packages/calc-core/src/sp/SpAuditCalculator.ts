@@ -138,7 +138,7 @@ export class SpAuditCalculator extends AuditCalculatorBase {
             ...this.buildBaseData(audit, {
                 qrSmollanStatus,
                 banner,
-                data: { nnd, sp, visibility, competitor },
+                data: { nnd, sp, visibility, competitor, promotion },
                 status,
             }),
             spFullname,
